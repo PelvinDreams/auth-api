@@ -5,6 +5,7 @@ import dotenv from "dotenv";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import setupSwagger from "./swagger.js";
+import Task from "./models/task.js";
 
 dotenv.config();
 const app = express();
@@ -20,7 +21,7 @@ mongoose
   .catch((err) => console.log("DB Connection Error:", err));
 
 setupSwagger(app);
-v 
+
 // User Model
 const UserSchema = new mongoose.Schema({
   fullName: { type: String, required: true },
@@ -129,6 +130,82 @@ app.delete("/api/users/:id", async (req, res) => {
     res.status(200).json({ message: "User deleted successfully" });
   } catch (error) {
     console.error("Delete User Error:", error);
+    res.status(500).json({ message: "Internal Server Error" });
+  }
+});
+
+// Create a new task
+app.post("/api/tasks", async (req, res) => {
+  try {
+    const { title, description, status, userId } = req.body;
+    if (!title || !userId) {
+      return res
+        .status(400)
+        .json({ message: "Title and User ID are required" });
+    }
+
+    const newTask = new Task({ title, description, status, userId });
+    await newTask.save();
+    res.status(201).json({ message: "Task created successfully" });
+  } catch (error) {
+    console.error("Create Task Error:", error);
+    res.status(500).json({ message: "Internal Server Error" });
+  }
+});
+
+// Retrieve all tasks
+app.get("/api/tasks", async (req, res) => {
+  try {
+    const tasks = await Task.find();
+    res.status(200).json(tasks);
+  } catch (error) {
+    console.error("Retrieve Tasks Error:", error);
+    res.status(500).json({ message: "Internal Server Error" });
+  }
+});
+
+// Retrieve a task by ID
+app.get("/api/tasks/:id", async (req, res) => {
+  try {
+    const task = await Task.findById(req.params.id);
+    if (!task) return res.status(404).json({ message: "Task not found" });
+    res.status(200).json(task);
+  } catch (error) {
+    console.error("Retrieve Task Error:", error);
+    res.status(500).json({ message: "Internal Server Error" });
+  }
+});
+
+// Update an existing task
+app.put("/api/tasks/:id", async (req, res) => {
+  try {
+    const { title, description, status, userId } = req.body;
+    const task = await Task.findById(req.params.id);
+    if (!task) return res.status(404).json({ message: "Task not found" });
+
+    if (title) task.title = title;
+    if (description) task.description = description;
+    if (status) task.status = status;
+    if (userId) task.userId = userId;
+
+    await task.save();
+    res.status(200).json({ message: "Task updated successfully" });
+  } catch (error) {
+    console.error("Update Task Error:", error);
+    res.status(500).json({ message: "Internal Server Error" });
+  }
+});
+
+// Delete a task
+app.delete("/api/tasks/:id", async (req, res) => {
+  try {
+    const task = await Task.findById(req.params.id);
+    if (!task) return res.status(404).json({ message: "Task not found" });
+
+    await task.remove();
+    res.status(200).json({ message: "Task deleted successfully" });
+  } catch (error) {
+    console.error("Delete Task Error:", error);
     res.status(500).json({ message: "Internal Server Error" });
   }
 });
